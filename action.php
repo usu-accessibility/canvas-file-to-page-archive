@@ -3,7 +3,7 @@
     /*
     * Developed by Ludovic Attiogbe. Teaching and Learning Technologies - Utah State University 2019
     * @version    1.0
-    * @license    See license.txt
+    * @license    See https://github.com/usu-access/file_to_page/blob/master/LICENSE
     */
 
     //Turn PHP error reporting on or off and can safely be left as is =)
@@ -31,23 +31,25 @@
         case 'fileToPage':
             fileToPage();
         break;
+        case 'allyAuth':
+            allyAuth();
+        break;
     }
 
-    // Funtion thats sets up the Oauth athentication to Ally and converts the file to HTML
-
-    function fileToPage(){
+    // Funtion thats sets up the Oauth athentication to Ally
+    function allyAuth(){
 
     /*******************
     *  CONFIGURATION  *
     *******************/
 
-        /* You will need your unique Ally institutional ID. This can be found by looking in your Ally LTI settings in the launch URL setting. If your launch URL is https://prod.ally.ac/api/v1/672/lti/institution then the institutional ID would be 672 */
+        /* You will need your unique Ally institutional ID. This can be found by looking in your Ally LTI settings in the launch URL setting. If your launch URL is https://prod.ally.ac/api/v1/4/lti/institution then the institutional ID would be 4 */
         $allyID=;
 
         /* When Ally was installed at your institution, a Consumer Key and Shared Secret was generated for you from Blackboard that you used to install Ally in Canvas. These values are needed to access the Ally API */
         $consumerKey='';
         $sharedSecret='';
-        
+
     /***********************
     *  END CONFIGURATION  *
     ***********************/
@@ -59,7 +61,7 @@
         // Calls the OAuth clas from the OAuthSimple library
         $oauthObject = new OAuthSimple();
 
-        // Fill in your API key/consumer key you received when you registered your
+        // Sets API key/consumer key from the variables provided above
         $signatures = array( 'consumer_key'     => $consumerKey,
                          'consumer_secret'    => $sharedSecret);
 
@@ -93,49 +95,51 @@
             $r = curl_exec($ch);
 
             curl_close($ch);
-
             $obj = json_decode($r);
-            if (isset($obj->{'status'}) && $obj->{'status'}==="Failed") {
-                echo " File cannot  be convert to page. Alternative format generation failed due to copyright restrictions.";
-            } else{
+            // print json_encode($obj);
+            if (isset($obj->{'url'})) {
 
-                // if conversion is successful the grab the html file and parse the elements needed to create a Canvas page
+                print json_encode($obj->{'url'});
+            } else {
 
-                $url = $obj->{'url'};
-                // Uses the simple_html_dom to parse the title, page and body of the HTML document
-                $title_dom = new DOMDocument();
-                $page_dom = new DOMDocument();
-                $body_dom = new DOMDocument();
-
-                // Collects the HTML elements received from Ally and compiles them into one variable
-                libxml_use_internal_errors(true);
-                $page_dom->loadHTML(file_get_contents($url));
-                $body = $page_dom->getElementsByTagName('body')->item(0);
-
-                foreach ($body->childNodes as $child){
-                    $body_dom->appendChild($body_dom->importNode($child, true));
-                }
-
-                $file_body = $body_dom->saveHTML();
-
-                libxml_clear_errors();
-
-                $title = '';
-
-                if($title_dom->loadHTMLFile($url)) {
-                    $list = $title_dom->getElementsByTagName("title");
-                    if ($list->length > 0) {
-                        $title = $list->item(0)->textContent;
-                    }
-                }
-
-                echo  $title .'|~|'.$file_body;
-
+                print json_encode($obj->{'status'});
             }
-
         }
     }
+	 // if conversion is successful the grab the html file and parse the elements needed to create a Canvas page
+     function fileToPage(){
 
+        // $url = $obj->{'url'};
+        $url = $_POST['url'];
+        // var_dump($url);
+        // Uses the simple_html_dom to parse the title, page and body of the HTML document
+        $title_dom = new DOMDocument();
+        $page_dom = new DOMDocument();
+        $body_dom = new DOMDocument();
 
+        // Collects the HTML elements received from Ally and compiles them into one variable
+        libxml_use_internal_errors(true);
+        $page_dom->loadHTML(file_get_contents($url));
+        $body = $page_dom->getElementsByTagName('body')->item(0);
+
+        foreach ($body->childNodes as $child){
+            $body_dom->appendChild($body_dom->importNode($child, true));
+        }
+
+        $file_body = $body_dom->saveHTML();
+
+        libxml_clear_errors();
+
+        $title = '';
+
+        if($title_dom->loadHTMLFile($url)) {
+            $list = $title_dom->getElementsByTagName("title");
+            if ($list->length > 0) {
+                $title = $list->item(0)->textContent;
+            }
+        }
+
+        echo  $title .'|~|'.$file_body;
+
+     }
 ?>
-
