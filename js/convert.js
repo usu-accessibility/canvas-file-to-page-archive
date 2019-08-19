@@ -1,7 +1,7 @@
 /*
 * Developed by Ludovic Attiogbe. Teaching and Learning Technologies - Utah State University 2019
 * @version    1.0
-* @license    See license.txt
+* @license    See https://github.com/usu-access/file_to_page/blob/master/LICENSE
 */
 
 /*jslint browser: true, sloppy: true, eqeq: false, vars: false, maxerr: 50, indent: 4, plusplus: true */
@@ -82,48 +82,97 @@ $(window).load(function() {
 
                 // Begin file conversion when "Convert to Canvas Page" link is clicked
                 $(".pdf_to_page").unbind('click').click(function() {
-
+                    var $this = $(this);
     				// Create modal dialog to provide status of document conversion
                     $("#file_convert_dialog").dialog();
                     $("#file_convert_dialog").html('<h3 style="text-align: center;">Converting file to Canvas page</h3> <img style="display: block; margin-left: auto; margin-right: auto; max-width: 100%;" src="'+scriptURL+'images/loading.gif" alt="loading" />');
 
-                    var fileId = $(this).data('id');
-                    var fileName = $(this).data('name');
+
+                    var fileId = $this.data('id');
+                    var fileName = $this.data('name');
                     var coursesId = ENV.COURSE_ID; //the Canvas course ID
                     var params;
+                    console.log(fileId);
 
-    				// What can we do about this URL
-                    $.post(scriptURL+'action.php', {
-                        task: "fileToPage",
-                        fileId: fileId,
-                        coursesId: coursesId
-                    }).done(function(data) {
+                    function callAlly($this){
+                        $.post(scriptURL+'action.php', {
+                            task: "allyAuth",
+                            fileId: fileId,
+                            coursesId: coursesId
+                        }).done(function(data_str) {
 
-                        // Retrieve Ally file data from action.php
-                        var data_info = data.split('|~|');
+                            var data = JSON.parse(data_str);
+                            console.log(data);
+                            if (data.indexOf("https://ally-production.s3.amazonaws.com") > -1) {
 
-                        // Determine if the the converted file has a title, if it doesn't then use the file name
-                        if (data_info[0] === "") {
-                            var page_tite = fileName;
-                        } else {
-                            var page_tite = data_info[0];
-                        }
+                				// 
+                                $.post(scriptURL+'action.php', {
+                                    task: "fileToPage",
+                                    url: data
+                                }).done(function(pagedata) {
 
-    	                // Run the Canvas API to convert the data from Allyinto a Canvas page using the document title and page content
-                        params = {
-                            'wiki_page[title]': page_tite,
-                            'wiki_page[body]': '<a href="https://' + document.domain + '/courses/' + coursesId + '/files/' + fileId + '" target="_blank">Download ' + page_tite + ' file</a>' + data_info[1]
-                        }
+                                    // Retrieve Ally file data from action.php
+                                    var data_info = pagedata.split('|~|');
+                                    console.log(data);
 
-                        $.ajax({
-                            'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/pages',
-                            'type': 'POST',
-                            'data': params
-                        }).done(function(results) {
-                            $("#file_convert_dialog").html('<h3 style="text-align: center;">The document is ready!<br /> <a href="' + results.html_url + '">View the page here</a><br /> (corrections may be needed).</h3>');
+                                    // Determine if the the converted file has a title, if it doesn't then use the file name
+                                    if (data_info[0] === "") {
+                                        var page_tite = fileName;
+                                    } else {
+                                        var page_tite = data_info[0];
+                                    }
+
+                	                // Run the Canvas API to convert the data from Allyinto a Canvas page using the document title and page content
+                                    params = {
+                                        'wiki_page[title]': page_tite,
+                                        'wiki_page[body]': '<a href="https://' + document.domain + '/courses/' + coursesId + '/files/' + fileId + '" target="_blank">Download ' + page_tite + ' file</a>' + data_info[1]
+                                    }
+
+                                    $.ajax({
+                                        'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/pages',
+                                        'type': 'POST',
+                                        'data': params
+                                    }).done(function(results) {
+                                        $("#file_convert_dialog").html('<h3 style="text-align: center;">The document is ready!<br /> <a href="' + results.html_url + '">View the page here</a><br /> (corrections may be needed).</h3>');
+
+                                    });
+                                });
+
+                            } else if (data === "Failed"){
+
+                                $("#file_convert_dialog").html('<h3 style="text-align: center;">Sorry, we are Unable to Convert your documment!</h3>');
+
+                            } else {
+								// Check the status of the file conversion until it is ready. 
+                                function checkStatus(nb_run) {
+                                    var max_run = 12,
+                                        repeatTime = 3000;
+                                    if (data === "Pending" || data === "InProgress" || data === "Succeeded") {
+                                        callAlly();
+                                    } else {
+                                        nb_run++;
+                                        if (nb_run !== max_run) {
+                                            if (nb_run > 3) {
+                                                repeatTime = 5000;
+                                            } else if (nb_run > 6) {
+                                                repeatTime = 10000;
+                                            }
+                                            setTimeout(function() {
+                                                checkStatus(nb_run);
+                                            }, repeatTime);
+                                        } else {
+                                            alert("The server is experiencing high traffic. Please reload the page");
+                                        }
+                                    }
+                                }
+
+                                checkStatus(1);
+                            }
+
 
                         });
-                    });
+                    }
+                     callAlly();
                 });
             }
         }
