@@ -61,7 +61,7 @@ $(window).load(function() {
                 // Get the file ID
     			 var fileId = files_url.split('/')[4];
 
-    			// Get the file name
+    		// Get the file name
                 var fileName = $(component).find('.ef-name-col').children("a").find('.ef-name-col__text').html();
 
                 // Check the file icon type
@@ -87,7 +87,6 @@ $(window).load(function() {
                     $("#file_convert_dialog").dialog();
                     $("#file_convert_dialog").html('<h3 style="text-align: center;">Converting file to Canvas page</h3> <img style="display: block; margin-left: auto; margin-right: auto; max-width: 100%;" src="'+scriptURL+'images/loading.gif" alt="loading" />');
 
-
                     var fileId = $this.data('id');
                     var fileName = $this.data('name');
                     var coursesId = ENV.COURSE_ID; //the Canvas course ID
@@ -105,7 +104,7 @@ $(window).load(function() {
                             console.log(data);
                             if (data.indexOf("https://ally-production.s3.amazonaws.com") > -1) {
 
-                				// 
+                		// 
                                 $.post(scriptURL+'action.php', {
                                     task: "fileToPage",
                                     url: data
@@ -113,7 +112,7 @@ $(window).load(function() {
 
                                     // Retrieve Ally file data from action.php
                                     var data_info = pagedata.split('|~|');
-                                    console.log(data);
+                                    // console.log(data);
 
                                     // Determine if the the converted file has a title, if it doesn't then use the file name
                                     if (data_info[0] === "") {
@@ -122,7 +121,7 @@ $(window).load(function() {
                                         var page_tite = data_info[0];
                                     }
 
-                	                // Run the Canvas API to convert the data from Allyinto a Canvas page using the document title and page content
+                	            // Run the Canvas API to convert the data from Allyinto a Canvas page using the document title and page content
                                     params = {
                                         'wiki_page[title]': page_tite,
                                         'wiki_page[body]': '<a href="https://' + document.domain + '/courses/' + coursesId + '/files/' + fileId + '" target="_blank">Download ' + page_tite + ' file</a>' + data_info[1]
@@ -143,14 +142,15 @@ $(window).load(function() {
                                 $("#file_convert_dialog").html('<h3 style="text-align: center;">Sorry, we are Unable to Convert your documment!</h3>');
 
                             } else {
-								// Check the status of the file conversion until it is ready. 
+				// Check the status of the file conversion until it is ready. 
                                 function checkStatus(nb_run) {
                                     var max_run = 12,
                                         repeatTime = 3000;
                                     if (data === "Pending" || data === "InProgress" || data === "Succeeded") {
-                                        callAlly();
+                                        setTimeout(function(){ callAlly(); }, 3000);
                                     } else {
-                                        nb_run++;
+                                        // Continue to check in case a status is not returned.  
+					nb_run++;
                                         if (nb_run !== max_run) {
                                             if (nb_run > 3) {
                                                 repeatTime = 5000;
