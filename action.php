@@ -75,6 +75,7 @@
                 'path'       => $url,
                 'parameters' => array(
                     'acceptTOU' => 'true',
+		    'asAttachment' => 'true',	
                     'role' => 'administrator',
                     'userId' => '1'
                 ),
@@ -87,7 +88,7 @@
 
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_URL, $url . '?acceptTOU=true&role=administrator&userId=1');
+            curl_setopt($ch, CURLOPT_URL, $url . '?asAttachment=true&acceptTOU=true&role=administrator&userId=1');
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
                 'Authorization: ' . $fixed_signature
             ));
