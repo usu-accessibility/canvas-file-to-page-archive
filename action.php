@@ -120,7 +120,10 @@
 
         // Collects the HTML elements received from Ally and compiles them into one variable
         libxml_use_internal_errors(true);
-        $page_dom->loadHTML(file_get_contents($url));
+        $html_string  =  file_get_contents($url);
+        // Identify all images and replace them with '[image]' 
+        $html_string = preg_replace("/<img[^>]+\>/i", " [image] ", $html_string);
+        $page_dom->loadHTML($html_string); 
         $body = $page_dom->getElementsByTagName('body')->item(0);
 
         foreach ($body->childNodes as $child){
