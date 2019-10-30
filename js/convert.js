@@ -22,7 +22,7 @@ var scriptURL = ''
 
 
 //
-$(window).load(function() {
+$(document).ready(function() {
     "use strict";
 
     // Append  jQuery dialog to the body of your page
