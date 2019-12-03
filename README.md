@@ -2,7 +2,7 @@ Ally File to Canvas Page
 ==============================
 
 * Ally File to Canvas Page* is a utility that utilizes the API from [Blackboard Ally](https://www.blackboard.com/accessibility/blackboard-ally.html) to convert files to Canvas pages. 
-* [View a video of the tool in action here](https://mymedia.usu.edu/media/File+to+Page+Demo/0_8i787b0d).
+* [View a video of the tool in action here](https://www.youtube.com/watch?v=j4ssfY_PVqE).
   
 Limitations
 -----------
