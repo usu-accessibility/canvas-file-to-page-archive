@@ -120,6 +120,7 @@ $(document).ready(function() {
                         formData.append('filename', name + imageExtension)
                         formData.append('content_type', contentType)
 
+                        // moves all the images in the root folder to images/converted-files path
                         function finalPushToCanvas(imageId){
                             var formData3 = new FormData()
                             formData3.append('Authorization', 'Enter the access token here')
@@ -141,6 +142,7 @@ $(document).ready(function() {
                             });
                         }
                         
+                        // uploads all the images to root folder of files
                         $.ajax({
                             'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/files',
                             'type': 'POST',
@@ -326,6 +328,8 @@ $(document).ready(function() {
                                     var initialFolderId = "";
 
                                     for(var idx = 1;idx <= 100;idx++){
+
+                                        // checks whether files page already have images folder or not
                                         $.ajax({
                                             'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
                                             'type': 'GET',
@@ -345,6 +349,8 @@ $(document).ready(function() {
 
                                                 if(page === 101){
                                                     if(flag){
+                                                        
+                                                        // creates converted-files folder
                                                         if(initialFolderId === ""){
                                                             var formData4 = new FormData()
                                                             formData4.append('Authorization', 'Enter the access token here')
@@ -374,6 +380,8 @@ $(document).ready(function() {
                                                         }
                                                     }
                                                     else {
+
+                                                        // creates images and converted-files folder
                                                         var formData2 = new FormData()
                                                         formData2.append('Authorization', 'Enter the access token here')
                                                         formData2.append('name', 'images')
