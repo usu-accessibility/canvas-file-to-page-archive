@@ -112,8 +112,6 @@ $(document).ready(function() {
                         const fileUrl = new File([imageUrl],  name + imageExtension, { type: imageUrl.type });                    
                         var imageExtension = (contentType == "image/jpeg")?'.jpg':'.png';
 
-                        console.log(path);
-
                         var formData = new FormData()
                         formData.append('Authorization', 'Enter the access token here')
                         formData.append('parent_folder_path', path)
@@ -174,9 +172,6 @@ $(document).ready(function() {
                                     }
                                 }).done(function(res) {
                                     imageIds.push(res);
-
-                                    // finalPushToCanvas(res.id);
-
                                     uploadedImgURLs[idx - 1] = res.url;
                                     if(actualCount === totalCount){
                                         convertFileToCanvasPage(paramsForFileToCanvas, uploadedImgURLs);
@@ -190,15 +185,13 @@ $(document).ready(function() {
                     }
 
                     function convertFileToCanvasPage(paramsForFileToCanvas, uploadedImgURLs){
-
                         var htmlString = paramsForFileToCanvas.pagedata;
-                        
                         htmlString = htmlString.replace(/src="(.*?)"/g, function(match, p1) {
                             return `src="${uploadedImgURLs.shift()}"`;
                         });
-                          
-                        var data_info = htmlString.split('|~|');
 
+                        var data_info = htmlString.split('|~|');
+                        
                         if (data_info[0] === "") {
                             var page_tite = fileName;
                         } else {
@@ -206,20 +199,16 @@ $(document).ready(function() {
                         }
 
                         // Run the Canvas API to convert the data from Allyinto a Canvas page using the document title and page content    
-
                         params = {
                             'wiki_page[title]': page_tite,
                             'wiki_page[body]': '<a href="https://' + document.domain + '/courses/' + paramsForFileToCanvas.coursesId + '/files/' + paramsForFileToCanvas.fileId + '" target="_blank">Download ' + page_tite + ' file</a>' + data_info[1]
                         }
-
                         $.ajax({
                             'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/pages',
                             'type': 'POST',
                             'data': params
                         }).done(function(results) {
-
                             $("#file_convert_dialog").html('<h3 style="text-align: center;">The document is ready!<br /> <a href="' + results.html_url + '">View the page here</a><br /> (corrections may be needed).</h3>');
-
                         });
                     }
 
@@ -229,11 +218,9 @@ $(document).ready(function() {
                             fileId: fileId,
                             coursesId: coursesId
                         }).done(function(data_str) {
-
                             var data = JSON.parse(data_str);
                             if (data.indexOf("https://ally-production.s3.amazonaws.com") > -1) {
 
-                                //
                                 $.post(scriptURL+'action.php', {
                                     task: "fileToPage",
                                     url: data
@@ -288,7 +275,6 @@ $(document).ready(function() {
                                     }
 
                                     var filename = fileName.split('.').slice(0, -1).join('.').replaceAll(" ", "-");
-                                    console.log(filename);
 
                                     function uploadImageAndConverToCanvasPage(path, folder_id){
                                         if(convertedImg.length !== 0){
@@ -308,8 +294,9 @@ $(document).ready(function() {
                                     var page = 1;
                                     var flag = false;
                                     var initialFolderId = "";
+                                    var initialFileId = "";
 
-                                    for(var idx = 1;idx <= 1;idx++){
+                                    for(var idx = 1;idx <= 10;idx++){
 
                                         var formData5 = new FormData()
                                         formData5.append('Authorization', 'Enter the access token here')
@@ -323,6 +310,8 @@ $(document).ready(function() {
                                             'data': {'per_page':200, 'page':idx},
                                             success: function(response) {
                                                 page += 1;
+
+                                                //check if any folders already exist or not
                                                 if(response.length !== 0){
                                                     response.forEach(element => {
                                                         if(element.name === 'converted-files'){
@@ -331,12 +320,14 @@ $(document).ready(function() {
                                                         if(element.name === "images"){
                                                             flag = true;
                                                         }
+                                                        if(element.name === filename){
+                                                            initialFileId = element.id;
+                                                        }
                                                     });
                                                 }
 
-                                                console.log(idx);
-
-                                                if(page === 2){
+                                                // if any of the folders already exist it fetches id of the folder to upload file or it creates folders if doesn't exist.
+                                                if(page === 11){
                                                     if(flag){
                                                         if(initialFolderId === ""){
                                                             var formData4 = new FormData()
@@ -378,22 +369,27 @@ $(document).ready(function() {
                                                             });
                                                         }
                                                         else {
-                                                            $.ajax({
-                                                                'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
-                                                                'type': 'POST',
-                                                                'data': formData5,
-                                                                processData: false,
-                                                                contentType: false,
-                                                                success: function(res2) {
-                                                                    res2 = JSON.parse(res2);
-                                                                    uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, res2.id);
-                                                                    console.log('Created converted-files folder successfully');
-                                                                },
-                                                                error: function(xhr, status, error){
-                                                                    console.log('Failed to move image to the new folder.');
-                                                                    $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');        
-                                                                }
-                                                            });
+                                                            if(initialFileId === ""){
+                                                                $.ajax({
+                                                                    'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
+                                                                    'type': 'POST',
+                                                                    'data': formData5,
+                                                                    processData: false,
+                                                                    contentType: false,
+                                                                    success: function(res2) {
+                                                                        res2 = JSON.parse(res2);
+                                                                        uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, res2.id);
+                                                                        console.log('Created converted-files folder successfully');
+                                                                    },
+                                                                    error: function(xhr, status, error){
+                                                                        console.log('Failed to move image to the new folder.');
+                                                                        $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');        
+                                                                    }
+                                                                });
+                                                            }
+                                                            else {
+                                                                uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, initialFileId);
+                                                            }
                                                         }
                                                     }
                                                     else {
@@ -465,9 +461,7 @@ $(document).ready(function() {
                                 });
 
                             } else if (data === "Failed"){
-
                                 $("#file_convert_dialog").html('<h3 style="text-align: center;">Sorry, we are Unable to Convert your documment!</h3>');
-
                             } else {
 
                                 // Check the status of the file conversion until it is ready.
