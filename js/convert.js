@@ -112,35 +112,14 @@ $(document).ready(function() {
                         const fileUrl = new File([imageUrl],  name + imageExtension, { type: imageUrl.type });                    
                         var imageExtension = (contentType == "image/jpeg")?'.jpg':'.png';
 
-                        var formData = new FormData()
+                        console.log(path);
 
+                        var formData = new FormData()
                         formData.append('Authorization', 'Enter the access token here')
                         formData.append('parent_folder_path', path)
                         formData.append('display_name', name + imageExtension)
                         formData.append('filename', name + imageExtension)
                         formData.append('content_type', contentType)
-
-                        // moves all the images in the root folder to images/converted-files path
-                        function finalPushToCanvas(imageId){
-                            var formData3 = new FormData()
-                            formData3.append('Authorization', 'Enter the access token here')
-                            formData3.append('parent_folder_id', folder_id);
-                            formData3.append('on_duplicate', 'overwrite');
-
-                            $.ajax({
-                                url: 'https://' + document.domain + '/api/v1/files/' + imageId,
-                                type: 'PUT',
-                                data: formData3,
-                                processData: false,
-                                contentType: false,
-                                success: function(moveResponse) {
-                                    console.log('Image ' + imageId + ' moved to the new folder successfully.');
-                                },
-                                error: function(xhr, status, error) {
-                                    console.log('Failed to move image ' + imageId + ' to the new folder.');
-                                }
-                            });
-                        }
                         
                         // uploads all the images to root folder of files
                         $.ajax({
@@ -196,7 +175,7 @@ $(document).ready(function() {
                                 }).done(function(res) {
                                     imageIds.push(res);
 
-                                    finalPushToCanvas(res.id);
+                                    // finalPushToCanvas(res.id);
 
                                     uploadedImgURLs[idx - 1] = res.url;
                                     if(actualCount === totalCount){
@@ -308,14 +287,17 @@ $(document).ready(function() {
                                         'courseId' : coursesId,
                                     }
 
+                                    var filename = fileName.split('.').slice(0, -1).join('.').replaceAll(" ", "-");
+                                    console.log(filename);
+
                                     function uploadImageAndConverToCanvasPage(path, folder_id){
                                         if(convertedImg.length !== 0){
                                             for(var idx = 0; idx < convertedImg.length;idx++){
                                                 var imageUrl = convertedImg[idx];
-                                                var name = fileName;
+                                                var name = filename;
                                                 name = name.replaceAll("pdf",'');
-                                                name = name + idx;
-                                                uploadImageToFilesofCanvas(imageUrl, name, paramsForFileToCanvas, idx + 1, convertedImg.length, contentType, imageIds, "/", folder_id);
+                                                name = name + "-" + idx;
+                                                uploadImageToFilesofCanvas(imageUrl, name, paramsForFileToCanvas, idx + 1, convertedImg.length, contentType, imageIds, path, folder_id);
                                             }
                                         }
                                         else{
@@ -327,18 +309,23 @@ $(document).ready(function() {
                                     var flag = false;
                                     var initialFolderId = "";
 
-                                    for(var idx = 1;idx <= 100;idx++){
+                                    for(var idx = 1;idx <= 1;idx++){
 
-                                        // checks whether files page already have images folder or not
+                                        var formData5 = new FormData()
+                                        formData5.append('Authorization', 'Enter the access token here')
+                                        formData5.append('name', filename);
+                                        formData5.append('parent_folder_path', '/images/converted-files');
+                                        formData5.append('on_duplicate', 'overwrite');
+
                                         $.ajax({
                                             'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
                                             'type': 'GET',
-                                            'data': {'per_page':100, 'page':idx},
+                                            'data': {'per_page':200, 'page':idx},
                                             success: function(response) {
                                                 page += 1;
                                                 if(response.length !== 0){
                                                     response.forEach(element => {
-                                                        if(element.name === 'converted-files-' + fileName){
+                                                        if(element.name === 'converted-files'){
                                                             initialFolderId = element.id;
                                                         }
                                                         if(element.name === "images"){
@@ -347,14 +334,14 @@ $(document).ready(function() {
                                                     });
                                                 }
 
-                                                if(page === 101){
+                                                console.log(idx);
+
+                                                if(page === 2){
                                                     if(flag){
-                                                        
-                                                        // creates converted-files folder
                                                         if(initialFolderId === ""){
                                                             var formData4 = new FormData()
                                                             formData4.append('Authorization', 'Enter the access token here')
-                                                            formData4.append('name', 'converted-files-' + fileName);
+                                                            formData4.append('name', 'converted-files');
                                                             formData4.append('parent_folder_path', '/images');
                                                             formData4.append('on_duplicate', 'overwrite');
                                                             
@@ -366,8 +353,23 @@ $(document).ready(function() {
                                                                 contentType: false,
                                                                 success: function(res1) {
                                                                     res1 = JSON.parse(res1);
-                                                                    uploadImageAndConverToCanvasPage("images/" + 'converted-files-' + fileName, res1.id);
-                                                                    console.log('Created converted-files folder successfully');
+
+                                                                    $.ajax({
+                                                                        'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
+                                                                        'type': 'POST',
+                                                                        'data': formData5,
+                                                                        processData: false,
+                                                                        contentType: false,
+                                                                        success: function(res2) {
+                                                                            res2 = JSON.parse(res2);
+                                                                            uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, res2.id);
+                                                                            console.log('Created converted-files folder successfully');
+                                                                        },
+                                                                        error: function(xhr, status, error){
+                                                                            console.log('Failed to move image to the new folder.');
+                                                                            $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');        
+                                                                        }
+                                                                    });
                                                                 },
                                                                 error: function(xhr, status, error) {
                                                                     console.log('Failed to move image to the new folder.');
@@ -375,13 +377,26 @@ $(document).ready(function() {
                                                                 }
                                                             });
                                                         }
-                                                        else{
-                                                            uploadImageAndConverToCanvasPage("images/" + 'converted-files-' + fileName, initialFolderId);
+                                                        else {
+                                                            $.ajax({
+                                                                'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
+                                                                'type': 'POST',
+                                                                'data': formData5,
+                                                                processData: false,
+                                                                contentType: false,
+                                                                success: function(res2) {
+                                                                    res2 = JSON.parse(res2);
+                                                                    uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, res2.id);
+                                                                    console.log('Created converted-files folder successfully');
+                                                                },
+                                                                error: function(xhr, status, error){
+                                                                    console.log('Failed to move image to the new folder.');
+                                                                    $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');        
+                                                                }
+                                                            });
                                                         }
                                                     }
                                                     else {
-
-                                                        // creates images and converted-files folder
                                                         var formData2 = new FormData()
                                                         formData2.append('Authorization', 'Enter the access token here')
                                                         formData2.append('name', 'images')
@@ -398,7 +413,7 @@ $(document).ready(function() {
 
                                                                 var formData4 = new FormData()
                                                                 formData4.append('Authorization', 'Enter the access token here')
-                                                                formData4.append('name', 'converted-files-' + fileName);
+                                                                formData4.append('name', 'converted-files');
                                                                 formData4.append('parent_folder_path', '/images');
                                                                 formData4.append('on_duplicate', 'overwrite');
 
@@ -409,9 +424,22 @@ $(document).ready(function() {
                                                                     processData: false,
                                                                     contentType: false,
                                                                     success: function(res1) {
-                                                                        res1 = JSON.parse(res1);
-                                                                        uploadImageAndConverToCanvasPage("images/" + 'converted-files-' + fileName, res1.id);
-                                                                        console.log('Created converted-files folder successfully');
+                                                                        $.ajax({
+                                                                            'url': 'https://' + document.domain + '/api/v1/courses/' + coursesId + '/folders',
+                                                                            'type': 'POST',
+                                                                            'data': formData5,
+                                                                            processData: false,
+                                                                            contentType: false,
+                                                                            success: function(res2) {
+                                                                                res2 = JSON.parse(res2);
+                                                                                uploadImageAndConverToCanvasPage("images/" + 'converted-files/' + filename, res2.id);
+                                                                                console.log('Created converted-files folder successfully');
+                                                                            },
+                                                                            error: function(xhr, status, error){
+                                                                                console.log('Failed to move image to the new folder.');
+                                                                                $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');        
+                                                                            }
+                                                                        });
                                                                     },
                                                                     error: function(xhr, status, error) {
                                                                         console.log('Failed to create a new folder.');
@@ -430,7 +458,8 @@ $(document).ready(function() {
                                             error: function(xhr, status, error) {
                                                 console.log('Failed to move image to the new folder.');
                                                 $("#file_convert_dialog").html('<h3 style="text-align: center;">Internal Server Error<br /> Please try again.</h3>');
-                                            }
+                                            },
+                                            timeout: 40000
                                         });
                                     }
                                 });
